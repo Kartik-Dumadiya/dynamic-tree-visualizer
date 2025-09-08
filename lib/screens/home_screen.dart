@@ -985,63 +985,111 @@ class ResponsiveTreeVisualizer extends StatelessWidget {
   }
 
   Widget _buildMobileControls(BuildContext context) {
-    return Positioned(
-      bottom: isLandscape ? 16 : 24,
-      left: 16,
-      right: 16,
-      child: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppConstants.darkBackground.withOpacity(0.95),
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
+    return Consumer<TreeProvider>(
+      builder: (context, treeProvider, child) {
+        final hasActiveNode = treeProvider.activeNode != null && 
+                              treeProvider.activeNode != treeProvider.root;
+        
+        return Stack(
+          children: [
+            // Main button bar (always visible)
+            Positioned(
+              bottom: isLandscape ? 16 : 24,
+              left: 16,
+              right: 16,
+              child: SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // Reduced padding
+                  decoration: BoxDecoration(
+                    color: AppConstants.darkBackground.withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Applications button (icon only)
+                      _buildProfessionalMobileButton(
+                        icon: Icons.apps,
+                        label: null, // No label - icon only
+                        onPressed: () => _showApplications(context),
+                        color: AppConstants.activeNodeColor,
+                        isWide: false,
+                      ),
+                      
+                      // Add node button (with label, wider)
+                      _buildProfessionalMobileButton(
+                        icon: Icons.add,
+                        label: 'Add Node', // Only this button shows label
+                        onPressed: () => _addNode(context),
+                        color: Colors.green.shade600,
+                        isWide: true,
+                      ),
+                      
+                      // Recenter button (icon only)
+                      _buildProfessionalMobileButton(
+                        icon: Icons.center_focus_strong,
+                        label: null, // No label - icon only
+                        onPressed: () => _recenterTree(context),
+                        color: Colors.blue.shade600,
+                        isWide: false,
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // Applications button (standard size)
-              _buildProfessionalMobileButton(
-                icon: Icons.apps,
-                label: 'Apps',
-                onPressed: () => _showApplications(context),
-                color: AppConstants.activeNodeColor,
-                isWide: false,
+            ),
+            
+            // Separate delete button (positioned outside, only when needed)
+            if (hasActiveNode)
+              Positioned(
+                bottom: isLandscape ? 80 : 88, // Above the main button bar
+                right: 20,
+                child: SafeArea(
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade600,
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _deleteNode(context),
+                        borderRadius: BorderRadius.circular(28),
+                        child: const Icon(
+                          Icons.delete,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              
-              // Add node button (wider)
-              _buildProfessionalMobileButton(
-                icon: Icons.add,
-                label: 'Add Node',
-                onPressed: () => _addNode(context),
-                color: Colors.green.shade600,
-                isWide: true,
-              ),
-              
-              // Recenter button (standard size)
-              _buildProfessionalMobileButton(
-                icon: Icons.center_focus_strong,
-                label: 'Center',
-                onPressed: () => _recenterTree(context),
-                color: Colors.blue.shade600,
-                isWide: false,
-              ),
-            ],
-          ),
-        ),
-      ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildProfessionalMobileButton({
     required IconData icon,
-    required String label,
+    required String? label, // Made nullable for icon-only buttons
     required VoidCallback onPressed,
     required Color color,
     required bool isWide,
@@ -1049,7 +1097,7 @@ class ResponsiveTreeVisualizer extends StatelessWidget {
     return Expanded(
       flex: isWide ? 2 : 1, // Add button takes 2x space, others take 1x
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
+        margin: const EdgeInsets.symmetric(horizontal: 2), // Reduced margin
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -1057,7 +1105,7 @@ class ResponsiveTreeVisualizer extends StatelessWidget {
             borderRadius: BorderRadius.circular(25),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12), // Reduced padding
               decoration: BoxDecoration(
                 color: color,
                 borderRadius: BorderRadius.circular(25),
@@ -1076,34 +1124,22 @@ class ResponsiveTreeVisualizer extends StatelessWidget {
                   Icon(
                     icon,
                     color: Colors.white,
-                    size: 20,
+                    size: 18, // Reduced icon size slightly
                   ),
-                  if (isWide) ...[
-                    const SizedBox(width: 8),
+                  // Only show label if provided
+                  if (label != null) ...[
+                    const SizedBox(width: 6), // Reduced spacing
                     Flexible(
                       child: Text(
                         label,
                         style: const TextStyle(
                           fontFamily: "RobotoMono",
-                          fontSize: 12,
+                          fontSize: 11, // Reduced font size
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                         ),
                         overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ] else ...[
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        label,
-                        style: const TextStyle(
-                          fontFamily: "RobotoMono",
-                          fontSize: 11,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                   ],
@@ -1124,6 +1160,11 @@ class ResponsiveTreeVisualizer extends StatelessWidget {
   void _addNode(BuildContext context) {
     // Use TreeVisualizer's method with animations
     _treeVisualizerKey.currentState?.addNodeWithAnimation();
+  }
+
+  void _deleteNode(BuildContext context) {
+    // Use TreeVisualizer's method for delete with confirmation
+    _treeVisualizerKey.currentState?.showDeleteConfirmationMobile();
   }
 
   void _recenterTree(BuildContext context) {

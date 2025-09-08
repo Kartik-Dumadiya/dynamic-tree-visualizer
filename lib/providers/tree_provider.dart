@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../models/tree_node.dart';
 import '../utils/constants.dart';
 
@@ -18,6 +19,21 @@ class TreeProvider with ChangeNotifier {
   double get zoomLevel => _zoomLevel;
   Offset get panOffset => _panOffset;
   bool get shouldRecenter => _shouldRecenter;
+  
+  // Calculate tree depth
+  int get treeDepth {
+    if (_root == null) return 0;
+    return _calculateDepth(_root!);
+  }
+
+  int _calculateDepth(TreeNode node) {
+    if (node.children.isEmpty) return 1;
+    int maxChildDepth = 0;
+    for (TreeNode child in node.children) {
+      maxChildDepth = math.max(maxChildDepth, _calculateDepth(child));
+    }
+    return maxChildDepth + 1;
+  }
 
   TreeProvider() {
     _initializeTree();

@@ -31,6 +31,7 @@ class TreeVisualizerState extends State<TreeVisualizer>
   late AnimationController _recenterAnimationController;
   late AnimationController _nodeAnimationController;
   late AnimationController _deleteAnimationController;
+  late AnimationController _zoomAnimationController; // Separate controller for zoom operations
   
   // Animation tracking
   Map<String, AnimationController> _nodeAnimations = {};
@@ -48,6 +49,11 @@ class TreeVisualizerState extends State<TreeVisualizer>
   // Subtree fade-out animation for nodes with children
   Set<String> _fadingSubtreeNodes = {}; // Nodes that are fading as part of subtree deletion
   Map<String, double> _subtreeFadeProgress = {}; // Fade progress for subtree nodes
+  
+  // Zoom animation state tracking
+  bool _isZooming = false;
+  double? _pendingZoomScale;
+  DateTime? _lastZoomTime;
 
   @override
   void initState() {
@@ -63,6 +69,10 @@ class TreeVisualizerState extends State<TreeVisualizer>
     );
     _deleteAnimationController = AnimationController(
       duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _zoomAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 400), // Shorter duration for zoom
       vsync: this,
     );
 
@@ -81,6 +91,12 @@ class TreeVisualizerState extends State<TreeVisualizer>
     _recenterAnimationController.dispose();
     _nodeAnimationController.dispose();
     _deleteAnimationController.dispose();
+    _zoomAnimationController.dispose();
+    
+    // Clean up zoom state
+    _isZooming = false;
+    _pendingZoomScale = null;
+    _lastZoomTime = null;
     
     // Dispose individual node animation controllers
     for (var controller in _nodeAnimations.values) {
@@ -411,6 +427,9 @@ class TreeVisualizerState extends State<TreeVisualizer>
               // Controls
               _buildZoomControls(context, treeProvider),
               _buildAddNodeButton(context, treeProvider),
+              
+              // Tree Depth Indicator (supports both mobile and desktop)
+              _buildTreeDepthIndicator(context, treeProvider),
             ],
           ),
         );
@@ -518,11 +537,77 @@ class TreeVisualizerState extends State<TreeVisualizer>
   }
 
   Widget _buildZoomControls(BuildContext context, TreeProvider provider) {
-    // Hide zoom controls on mobile since mobile has pinch-to-zoom
+    // On mobile, show compact zoom controls on the right side
     if (widget.isSmallScreen) {
-      return const SizedBox.shrink();
+      return Positioned(
+        top: 100, // Position below app bar
+        right: 16,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Compact zoom in button
+            Container(
+              width: 45,
+              height: 45,
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: AppConstants.darkBackground.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(22.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _animatedZoomIn,
+                  borderRadius: BorderRadius.circular(22.5),
+                  child: const Icon(
+                    Icons.add,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+            // Compact zoom out button
+            Container(
+              width: 45,
+              height: 45,
+              decoration: BoxDecoration(
+                color: AppConstants.darkBackground.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(22.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _animatedZoomOut,
+                  borderRadius: BorderRadius.circular(22.5),
+                  child: const Icon(
+                    Icons.remove,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
     }
     
+    // Desktop zoom controls (original design)
     return Positioned(
       bottom: 20,
       right: 20,
@@ -571,17 +656,7 @@ class TreeVisualizerState extends State<TreeVisualizer>
                 _buildControlButton(
                   icon: Icons.add,
                   tooltip: 'Zoom In',
-                  onPressed: () {
-                    final currentScale =
-                        _transformationController.value.getMaxScaleOnAxis();
-                    final newScale =
-                        (currentScale * 1.2).clamp(AppConstants.minZoom, AppConstants.maxZoom);
-                    final currentMatrix =
-                        _transformationController.value.clone();
-                    currentMatrix.scale(newScale / currentScale);
-                    _transformationController.value = currentMatrix;
-                    _currentScale = newScale;
-                  },
+                  onPressed: _animatedZoomIn,
                 ),
                 Divider(
                     color: AppConstants.lightSkyBlue.withOpacity(0.4),
@@ -590,17 +665,7 @@ class TreeVisualizerState extends State<TreeVisualizer>
                 _buildControlButton(
                   icon: Icons.remove,
                   tooltip: 'Zoom Out',
-                  onPressed: () {
-                    final currentScale =
-                        _transformationController.value.getMaxScaleOnAxis();
-                    final newScale =
-                        (currentScale * 0.8).clamp(AppConstants.minZoom, AppConstants.maxZoom);
-                    final currentMatrix =
-                        _transformationController.value.clone();
-                    currentMatrix.scale(newScale / currentScale);
-                    _transformationController.value = currentMatrix;
-                    _currentScale = newScale;
-                  },
+                  onPressed: _animatedZoomOut,
                 ),
               ],
             ),
@@ -634,6 +699,95 @@ class TreeVisualizerState extends State<TreeVisualizer>
               size: 26,
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // Tree Depth Indicator - Different styles for mobile and desktop
+  Widget _buildTreeDepthIndicator(BuildContext context, TreeProvider treeProvider) {
+    if (widget.isSmallScreen) {
+      // Mobile: Compact depth indicator on the left side
+      return Positioned(
+        top: 100, // Same level as mobile zoom controls
+        left: 16,  // Left side positioning
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppConstants.darkBackground.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.account_tree,
+                color: Colors.white,
+                size: 16,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${treeProvider.treeDepth}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500, // Lighter font weight for better visibility
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Desktop: Full depth indicator aligned with bottom buttons
+    return Positioned(
+      bottom: 30, // Same vertical position as Applications/Add/Recenter buttons
+      left: 30,   // Left side positioning
+      child: FloatingActionButton.extended(
+        heroTag: "depth_indicator",
+        onPressed: null, // Make it non-interactive, just an indicator
+        backgroundColor: AppConstants.cardColor,
+        foregroundColor: AppConstants.cobaltBlue,
+        elevation: 12,
+        icon: Icon(
+          Icons.account_tree,
+          color: Colors.white,
+        ),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Depth',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w500, // Lighter font weight for better visibility
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppConstants.activeNodeColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${treeProvider.treeDepth}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600, // Lighter font weight for better visibility
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -840,6 +994,164 @@ class TreeVisualizerState extends State<TreeVisualizer>
     );
   }
 
+  /// Animated zoom in function that centers around viewport
+  void _animatedZoomIn() {
+    _performZoom(1.2);
+  }
+  
+  /// Animated zoom out function that centers around viewport
+  void _animatedZoomOut() {
+    _performZoom(0.8);
+  }
+  
+  /// Main zoom function with improved reliability
+  void _performZoom(double scaleFactor) {
+    if (!mounted) return;
+    
+    // Debounce rapid clicks (minimum 100ms between zoom operations)
+    final now = DateTime.now();
+    if (_lastZoomTime != null && now.difference(_lastZoomTime!).inMilliseconds < 100) {
+      return;
+    }
+    _lastZoomTime = now;
+    
+    final screenSize = MediaQuery.of(context).size;
+    final currentMatrix = _transformationController.value;
+    final currentScale = currentMatrix.getMaxScaleOnAxis();
+    final targetScale = (currentScale * scaleFactor).clamp(AppConstants.minZoom, AppConstants.maxZoom);
+    
+    // Check if we're already at the limit
+    if ((targetScale - currentScale).abs() < 0.01) return;
+    
+    // If already zooming, queue the operation
+    if (_isZooming) {
+      _pendingZoomScale = targetScale;
+      return;
+    }
+    
+    _executeZoom(targetScale, screenSize);
+  }
+  
+  /// Execute the zoom operation with reliable animation
+  void _executeZoom(double targetScale, Size screenSize) {
+    if (!mounted) return;
+    
+    _isZooming = true;
+    _pendingZoomScale = null;
+    
+    final currentMatrix = _transformationController.value;
+    final currentScale = currentMatrix.getMaxScaleOnAxis();
+    
+    try {
+      // Calculate viewport center
+      final viewportCenter = Offset(screenSize.width / 2, screenSize.height / 2);
+      
+      // Get current transformation
+      final currentTranslation = currentMatrix.getTranslation();
+      final currentTranslateX = currentTranslation.x;
+      final currentTranslateY = currentTranslation.y;
+      
+      // Calculate focal point in canvas coordinates
+      final focalX = (viewportCenter.dx - currentTranslateX) / currentScale;
+      final focalY = (viewportCenter.dy - currentTranslateY) / currentScale;
+      
+      // Calculate new transformation to keep focal point centered
+      final newTranslateX = viewportCenter.dx - (focalX * targetScale);
+      final newTranslateY = viewportCenter.dy - (focalY * targetScale);
+      
+      final targetMatrix = Matrix4.identity()
+        ..translate(newTranslateX, newTranslateY)
+        ..scale(targetScale);
+      
+      // Reset animation controller completely
+      _zoomAnimationController.reset();
+      
+      // Create animation
+      final animation = Matrix4Tween(
+        begin: currentMatrix,
+        end: targetMatrix,
+      ).animate(CurvedAnimation(
+        parent: _zoomAnimationController,
+        curve: Curves.easeInOutCubic,
+      ));
+      
+      // Create listeners
+      late VoidCallback animationListener;
+      late void Function(AnimationStatus) statusListener;
+      
+      animationListener = () {
+        if (mounted) {
+          _transformationController.value = animation.value;
+        }
+      };
+      
+      statusListener = (status) {
+        if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
+          // Clean up listeners
+          _zoomAnimationController.removeListener(animationListener);
+          _zoomAnimationController.removeStatusListener(statusListener);
+          
+          // Update state
+          _currentScale = targetScale;
+          _isZooming = false;
+          
+          if (mounted) {
+            setState(() {});
+            
+            // Process pending zoom if any
+            if (_pendingZoomScale != null) {
+              final pendingScale = _pendingZoomScale!;
+              _pendingZoomScale = null;
+              Future.microtask(() => _executeZoom(pendingScale, screenSize));
+            }
+          }
+        }
+      };
+      
+      // Add listeners and start animation
+      _zoomAnimationController.addListener(animationListener);
+      _zoomAnimationController.addStatusListener(statusListener);
+      _zoomAnimationController.forward();
+      
+    } catch (e) {
+      // Fallback: instant zoom
+      _isZooming = false;
+      _instantZoom(targetScale, screenSize);
+    }
+  }
+  
+  /// Instant zoom fallback when animation fails
+  void _instantZoom(double targetScale, Size screenSize) {
+    if (!mounted) return;
+    
+    final currentMatrix = _transformationController.value;
+    final currentScale = currentMatrix.getMaxScaleOnAxis();
+    
+    // Calculate the center of the current viewport
+    final viewportCenter = Offset(screenSize.width / 2, screenSize.height / 2);
+    
+    // Get current translation
+    final currentTranslation = currentMatrix.getTranslation();
+    final currentTranslateX = currentTranslation.x;
+    final currentTranslateY = currentTranslation.y;
+    
+    // Calculate the point in canvas coordinates that's currently at viewport center
+    final canvasCenterX = (viewportCenter.dx - currentTranslateX) / currentScale;
+    final canvasCenterY = (viewportCenter.dy - currentTranslateY) / currentScale;
+    
+    // Calculate new translation to keep the same canvas point at viewport center
+    final newTranslateX = viewportCenter.dx - (canvasCenterX * targetScale);
+    final newTranslateY = viewportCenter.dy - (canvasCenterY * targetScale);
+    
+    final targetMatrix = Matrix4.identity()
+      ..translate(newTranslateX, newTranslateY)
+      ..scale(targetScale);
+    
+    _transformationController.value = targetMatrix;
+    _currentScale = targetScale;
+    if (mounted) setState(() {});
+  }
+
   // Public methods for mobile controls to use
   void addNodeWithAnimation() {
     final provider = Provider.of<TreeProvider>(context, listen: false);
@@ -865,6 +1177,13 @@ class TreeVisualizerState extends State<TreeVisualizer>
 
   void showApplicationExamples() {
     _showApplicationExamples(context);
+  }
+
+  void showDeleteConfirmationMobile() {
+    final provider = Provider.of<TreeProvider>(context, listen: false);
+    if (provider.activeNode != null && provider.activeNode != provider.root) {
+      _showDeleteConfirmation(context, provider, provider.activeNode!);
+    }
   }
 }
 

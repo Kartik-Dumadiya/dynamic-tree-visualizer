@@ -194,30 +194,35 @@ class _ApplicationExamplesState extends State<ApplicationExamples> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12), // Reduced from 20
-                Flexible(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(
-                      AppExamples.examples.length,
-                      (index) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        margin: const EdgeInsets.symmetric(horizontal: 3), // Reduced from 4
-                        width: _currentIndex == index ? 24 : 10, // Reduced sizes
-                        height: 10, // Reduced from 12
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(5),
-                          color: _currentIndex == index
-                              ? AppConstants.activeNodeColor
-                              : Colors.white30,
+                const SizedBox(width: 4), // Minimal spacing
+                Expanded( // Use Expanded instead of Flexible to handle overflow
+                  child: Center(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(
+                          AppExamples.examples.length,
+                          (index) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            margin: const EdgeInsets.symmetric(horizontal: 1), // Minimal margin
+                            width: _currentIndex == index ? 12 : 6, // Much smaller sizes
+                            height: 6, // Much smaller height
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(5),
+                              color: _currentIndex == index
+                                  ? AppConstants.activeNodeColor
+                                  : Colors.white30,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12), // Reduced from 20
+                const SizedBox(width: 4), // Further reduced for tight mobile space
                 Flexible(
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -444,71 +449,104 @@ class _ApplicationExamplesState extends State<ApplicationExamples> {
         ),
         SizedBox(height: isMobile ? 16 : 20),
         // Features Section
-        Column(
-          crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: isMobile ? MainAxisAlignment.center : MainAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.star_rounded,
-                  color: AppConstants.activeNodeColor,
-                  size: isMobile ? 16 : 18,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Key Features',
-                  style: TextStyle(
-                    fontFamily: "RobotoMono",
-                    fontSize: isMobile ? 14 : 16,
-                    fontWeight: FontWeight.bold,
+        Container(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: isMobile ? MainAxisAlignment.center : MainAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.star_rounded,
                     color: AppConstants.activeNodeColor,
+                    size: isMobile ? 16 : 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'Key Features',
+                      style: TextStyle(
+                        fontFamily: "RobotoMono",
+                        fontSize: isMobile ? 14 : 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppConstants.activeNodeColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Features Table - cleaner than bullet points
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(isMobile ? 8 : 12),
+                decoration: BoxDecoration(
+                  color: AppConstants.darkBackground.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppConstants.activeNodeColor.withOpacity(0.2),
+                    width: 1,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Features List - Limited to first 3 features
-            ...example.features.take(3).toList().asMap().entries.map((entry) {
-              int index = entry.key;
-              String feature = entry.value;
-              return AnimatedContainer(
-                duration: Duration(milliseconds: 500 + (index * 100)),
-                curve: Curves.easeOutCubic,
-                margin: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: isMobile ? MainAxisAlignment.center : MainAxisAlignment.start,
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      width: 4,
-                      height: 4,
+                child: Column(
+                  children: example.features.take(3).toList().asMap().entries.map((entry) {
+                    int index = entry.key;
+                    String feature = entry.value;
+                    return AnimatedContainer(
+                      duration: Duration(milliseconds: 500 + (index * 100)),
+                      curve: Curves.easeOutCubic,
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                      margin: EdgeInsets.only(bottom: index < 2 ? 4 : 0),
                       decoration: BoxDecoration(
-                        color: AppConstants.activeNodeColor,
-                        shape: BoxShape.circle,
+                        color: AppConstants.activeNodeColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        feature,
-                        style: TextStyle(
-                          fontFamily: "RobotoMono",
-                          fontSize: isMobile ? 11 : 12,
-                          color: Colors.white70,
-                          height: 1.4,
-                        ),
-                        textAlign: isMobile ? TextAlign.center : TextAlign.left,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: isMobile ? 18 : 24, // Reduced width for mobile
+                            height: isMobile ? 18 : 24, // Reduced height for mobile
+                            decoration: BoxDecoration(
+                              color: AppConstants.activeNodeColor,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${index + 1}',
+                                style: TextStyle(
+                                  fontFamily: "RobotoMono",
+                                  fontSize: isMobile ? 9 : 12, // Reduced font size
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8), // Reduced spacing
+                          Expanded(
+                            child: Text(
+                              feature,
+                              style: TextStyle(
+                                fontFamily: "RobotoMono",
+                                fontSize: isMobile ? 10 : 12, // Reduced font size
+                                color: Colors.white70,
+                                height: 1.4,
+                              ),
+                              textAlign: TextAlign.left,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    );
+                  }).toList(),
                 ),
-              );
-            }),
-          ],
+              ),
+            ],
+          ),
         ),
       ],
     );
