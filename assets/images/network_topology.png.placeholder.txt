@@ -1,0 +1,4 @@
+This is a placeholder for the Network Topology image.
+Replace this file with your network topology visualization image.
+Recommended size: 500x300 pixels
+Supported formats: PNG, JPG, GIF, WebP

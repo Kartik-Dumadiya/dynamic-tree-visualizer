@@ -1,23 +1,29 @@
 {
-    "name": "dynamic_tree_visualizer",
-    "short_name": "dynamic_tree_visualizer",
+    "name": "Dynamic Tree Visualizer",
+    "short_name": "Tree Visualizer",
+    "description": "Interactive tree visualization tool for organizational charts, file systems, mind maps, decision trees, and more. Build and explore hierarchical structures with ease.",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "orientation": "any",
+    "background_color": "#0D1B2A",
+    "theme_color": "#4CAF50",
+    "categories": ["productivity", "utilities", "business"],
+    "lang": "en",
+    "dir": "ltr",
     "prefer_related_applications": false,
+    "scope": "/",
     "icons": [
         {
             "src": "icons/Icon-192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "icons/Icon-512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "icons/Icon-maskable-192.png",
@@ -30,6 +36,20 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "icons/screenshot-wide.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide"
+        },
+        {
+            "src": "icons/screenshot-narrow.png",
+            "sizes": "360x640",
+            "type": "image/png",
+            "form_factor": "narrow"
         }
     ]
 }

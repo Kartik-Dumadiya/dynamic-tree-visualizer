@@ -1,14 +1,23 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/tree_node.dart';
+import '../utils/constants.dart';
 
 class TreeProvider with ChangeNotifier {
   TreeNode? _root;
   TreeNode? _activeNode;
   int _nodeCounter = 1;
-
+  double _zoomLevel = AppConstants.defaultZoom;
+  Offset _panOffset = Offset.zero;
+  bool _shouldRecenter = false; // Added flag for recentering
+  
+  // Getters
   TreeNode? get root => _root;
   TreeNode? get activeNode => _activeNode;
   int get nodeCounter => _nodeCounter;
+  double get zoomLevel => _zoomLevel;
+  Offset get panOffset => _panOffset;
+  bool get shouldRecenter => _shouldRecenter;
 
   TreeProvider() {
     _initializeTree();
@@ -21,6 +30,9 @@ class TreeProvider with ChangeNotifier {
     );
     _activeNode = _root;
     _nodeCounter = 2;
+    _zoomLevel = AppConstants.defaultZoom;
+    _panOffset = Offset.zero;
+    _shouldRecenter = true;
     notifyListeners();
   }
 
@@ -29,8 +41,8 @@ class TreeProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void addChildToActiveNode() {
-    if (_activeNode == null) return;
+  String? addChildToActiveNode() {
+    if (_activeNode == null) return null;
 
     final newNode = TreeNode(
       id: _nodeCounter.toString(),
@@ -39,23 +51,25 @@ class TreeProvider with ChangeNotifier {
 
     _activeNode!.addChild(newNode);
     _nodeCounter++;
+    _shouldRecenter = true; // Set flag to recenter after adding
     notifyListeners();
+    
+    return newNode.id; // Return the new node ID
   }
 
   void deleteNode(TreeNode nodeToDelete) {
     if (nodeToDelete == _root) {
-      // Don't allow deleting root, or reinitialize
       _initializeTree();
       return;
     }
 
     if (nodeToDelete.parent != null) {
-      // If deleting active node, set parent as active
       if (_activeNode == nodeToDelete || _isNodeInSubtree(_activeNode, nodeToDelete)) {
         _activeNode = nodeToDelete.parent;
       }
       
       nodeToDelete.parent!.removeChild(nodeToDelete);
+      _shouldRecenter = true; // Set flag to recenter after deleting
       notifyListeners();
     }
   }
@@ -70,7 +84,42 @@ class TreeProvider with ChangeNotifier {
     return false;
   }
 
+  // Zoom and Pan functionality
+  void setZoom(double zoom) {
+    _zoomLevel = zoom.clamp(AppConstants.minZoom, AppConstants.maxZoom);
+    notifyListeners();
+  }
+
+  void zoomIn() {
+    setZoom(_zoomLevel * 1.2);
+  }
+
+  void zoomOut() {
+    setZoom(_zoomLevel * 0.8);
+  }
+
+  void resetZoom() {
+    _zoomLevel = AppConstants.defaultZoom;
+    _panOffset = Offset.zero;
+    notifyListeners();
+  }
+
+  void setPanOffset(Offset offset) {
+    _panOffset = offset;
+    notifyListeners();
+  }
+
   void resetTree() {
     _initializeTree();
+  }
+  
+  // Set and reset recenter flag
+  void setShouldRecenter(bool value) {
+    _shouldRecenter = value;
+    notifyListeners();
+  }
+  
+  void resetShouldRecenter() {
+    _shouldRecenter = false;
   }
 }
