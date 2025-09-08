@@ -1,4 +1,0 @@
-This is a placeholder for the File System Explorer image.
-Replace this file with your file system tree visualization image.
-Recommended size: 500x300 pixels
-Supported formats: PNG, JPG, GIF, WebP

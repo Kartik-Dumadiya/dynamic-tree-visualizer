@@ -1,4 +1,0 @@
-This is a placeholder for the DOM Tree Structure image.
-Replace this file with your DOM tree visualization image.
-Recommended size: 500x300 pixels
-Supported formats: PNG, JPG, GIF, WebP

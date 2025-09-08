@@ -1,4 +1,0 @@
-This is a placeholder for the Decision Tree AI/ML image.
-Replace this file with your decision tree visualization image.
-Recommended size: 500x300 pixels
-Supported formats: PNG, JPG, GIF, WebP

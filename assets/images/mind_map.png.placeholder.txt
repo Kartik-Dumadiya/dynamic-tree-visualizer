@@ -1,4 +1,0 @@
-This is a placeholder for the Mind Mapping Tool image.
-Replace this file with your mind map visualization image.
-Recommended size: 500x300 pixels
-Supported formats: PNG, JPG, GIF, WebP
