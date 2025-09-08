@@ -1,4 +1,4 @@
-# Dynamic Tree Visualizer 🌳
+# Dynamic Tree Visualizer
 
 A beautiful Flutter application for creating and visualizing dynamic tree structures with smooth animations and intuitive controls.
 
