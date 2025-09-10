@@ -13,8 +13,33 @@ A beautiful Flutter application for creating and visualizing dynamic tree struct
 - **Reset Functionality**: Start fresh with a single tap
 
 ## Screenshots 📱
+## 📌 Real World Application
+<p align="center">
+  <img src="https://drive.google.com/uc?export=view&id=1_NuMotS7q2WZMOU60FuuWwoYtjE7jYHW" alt="Real World Application" width="600"/>
+  <br/>
+  <b>Figure 1: Real-world application of the project</b>
+</p>
 
-_Add screenshots here once you run the app_
+## 📌 How to Use
+<p align="center">
+  <img src="https://drive.google.com/uc?export=view&id=1mRvi5qF-81nsbS3WBG8Z2oDG72aJ4676" alt="How to Use" width="600"/>
+  <br/>
+  <b>Figure 2: Steps showing how to use the project</b>
+</p>
+
+## 📌 Delete Node
+<p align="center">
+  <img src="https://drive.google.com/uc?export=view&id=1JUK8tfzPz-_rqcb4uxyEVlCUsEJlMuvy" alt="Delete Node" width="600"/>
+  <br/>
+  <b>Figure 3: Deleting a node in the system</b>
+</p>
+
+## 📌 Dashboard
+<p align="center">
+  <img src="https://drive.google.com/uc?export=view&id=1rSsQ--32mW4u5r67CWM98l-vU3jiuYmI" alt="Dashboard" width="600"/>
+  <br/>
+  <b>Figure 4: Project dashboard interface</b>
+</p>
 
 ## Getting Started 🚀
 
